@@ -1,0 +1,122 @@
+#!/bin/bash
+
+_get_mmcblk() {
+    local PREFIX_DEV="/dev/mmcblk"
+    local mmcblk_devices=()
+    
+    # 如果有boot0分区，就输出带boot0分区的那个
+    for i in 2 1 0; do
+        if [ -b "${PREFIX_DEV}${i}boot0" ]; then
+            echo "${PREFIX_DEV}${i}"
+            return
+        fi
+    done
+    
+    for dev in /sys/block/mmcblk*; do
+        if [ -d "$dev" ]; then
+            local device_name=$(basename "$dev")
+            type=$(cat "$dev/device/type" 2>/dev/null)
+            if [ "$type" == "MMC" ] ; then
+                echo "/dev/$device_name"
+                return
+            fi
+        fi
+    done
+}
+
+_show_burn_progress() {
+    local progress=$1
+    local speed_MB=$2
+    local time_use=$3
+    local time_may_stop=$4
+    local dd_done=$5
+    
+    local term_width=$(tput cols)
+    local bar_width=$((term_width - 40))
+    local filled_part=$((progress * bar_width / 100))
+    local empty_part=$((bar_width - filled_part))
+    local output=$(
+        printf '\r'
+        printf '%ds' $time_use
+        if [ -n "$dd_done" ]; then
+            echo -n  " $dd_done"
+        fi
+        printf '['
+        if [ $filled_part -gt 0 ]; then
+            printf '\033[42m%0.s \033[0m' $(seq 1 $filled_part)
+        fi
+        if [ $empty_part -gt 0 ]; then
+            printf '\033[41m%0.s-\033[0m' $(seq 1 $empty_part)
+        fi
+        # printf ']%3.d%%'  $progress
+        echo "] $progress%"
+        
+        printf '%6.1fMB/s'  $speed_MB
+        printf '  <%ds'  $time_may_stop
+    )
+    progress_bar $progress
+    echo -e $output "\c"
+    
+}
+_delete_all_part() {
+    local MMC_DEVICE=$1
+    if ls ${MMC_DEVICE}p* 1> /dev/null 2>&1; then
+        local partitions=$(parted -s $MMC_DEVICE print | awk '{if(NF>1 && $1 ~ /^[0-9]+$/) print $1}')
+        for partition in $partitions; do
+            # echo "remove part $partition"
+            parted -s $MMC_DEVICE rm $partition
+        done
+        
+    fi
+}
+_dd_file() {
+    local FILE_IF=$1
+    local PROGRESS_SIZE=$2
+    
+    local FILE_OF=$(_get_mmcblk)
+    local mountpoint=$(mount | grep $FILE_OF)
+    if [ -n "$mountpoint" ]; then
+        echo "the emmc is in use"
+        echo "$mountpoint"
+        exit
+    fi
+    _delete_all_part $FILE_OF
+    
+    local num=$PROGRESS_SIZE
+    while [ $num -gt 999 ]; do
+        local remainder=$(($num % 1000))
+        if [ $remainder -lt 100 ];then
+            remainder=0"$remainder"
+        fi
+        num=$(($num / 1000))
+        result=",${remainder}${result}"
+    done
+    echo "size : ${num}${result} Byte"
+    
+    
+    local set_emmc_burn_speed=0
+    local set_emmc_burn_time_use=0
+    while IFS= read -r -d $'\r' line
+    do
+        # 15467008 bytes (15 MB, 15 MiB) copied, 1 s, 15.5 MB/s
+        total_bytes=$(echo $line | awk '{print $1}')
+        set_emmc_burn_speed=$(echo $line | awk '{print $10}')
+        set_emmc_burn_time_use=$(echo $line | awk '{print $8}')
+        set_emmc_dd_done="$(echo $line | awk '{print $5}')$(echo $line | awk '{print $4}')"
+        if [ -z  $total_bytes ]; then
+            continue
+        fi
+        local progress=$[ total_bytes * 100 / PROGRESS_SIZE   ]
+        local time_may_stop=$[ (PROGRESS_SIZE - total_bytes ) / $(echo $set_emmc_burn_speed | awk '{print int($1)}') / 1000 / 1000  ]
+        _show_burn_progress $progress $set_emmc_burn_speed $set_emmc_burn_time_use $time_may_stop ${set_emmc_dd_done%?}
+    done < <(LANG=C dd if=$FILE_IF of=${FILE_OF} status=progress 2>&1)
+    sync
+    _show_burn_progress 100 $set_emmc_burn_speed $set_emmc_burn_time_use 0
+    echo ""
+}
+
+IMG_FILE="/opt/img"
+if [ -f $IMG_FILE ]; then
+    BIN_SIZE=$(stat -c "%s" $IMG_FILE)
+    _dd_file $IMG_FILE  $BIN_SIZE
+fi
