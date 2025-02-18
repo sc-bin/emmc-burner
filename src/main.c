@@ -7,7 +7,7 @@
 int main()
 {
     ui_init();
- 
+    draw_logo();
     for (int i = 0; i <= 100; i++)
     {
         /* code */

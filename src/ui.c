@@ -35,6 +35,7 @@ int color_transform(int r, int g, int b)
         return 0;
     }
 }
+static int color_logo;
 
 // 打开fb0节点，并使用mmap映射fb0
 void ui_init()
@@ -70,6 +71,7 @@ void ui_init()
         exit(4);
     }
     printf("The framebuffer device was mapped to memory successfully.\n");
+    color_logo = color_transform(0, 255, 0);
 }
 
 // 设置指定位置的像素颜色
@@ -179,20 +181,15 @@ void ui_draw_progress(int progress)
         return;
     }
 
-    // 计算进度条的位置和大小
     int bar_width = vinfo.xres / 2;
     int bar_height = vinfo.yres / 10;
     int bar_x = (vinfo.xres - bar_width) / 2;
     int bar_y = (vinfo.yres - bar_height) / 2;
-
-    // 计算进度条的结束位置
     int progress_width = (bar_width * progress) / 100;
     int progress_x_end = bar_x + progress_width;
 
-    // 定义颜色
     int green_color = color_transform(0, 255, 0);
 
-    // 绘制背景矩形
     struct POSITION start_bg = {bar_x, bar_y};
     struct POSITION end_bg = {bar_x + bar_width, bar_y + bar_height};
     fb_draw_rect(start_bg, end_bg, color_transform(100, 100, 100)); // 灰色背景
@@ -201,4 +198,26 @@ void ui_draw_progress(int progress)
     struct POSITION start_progress = {bar_x, bar_y};
     struct POSITION end_progress = {progress_x_end, bar_y + bar_height};
     fb_draw_rect(start_progress, end_progress, green_color);
+}
+
+
+void draw_logo()
+{
+    struct LINE
+    {
+        struct POSITION start;
+        struct POSITION end;
+    };
+    struct LINE LOGO[] = {
+        // w
+        {.start = {.x = 0, .y = 0}, .end = {.x = 50, .y = 100}},
+        {.start = {.x = 50, .y = 100}, .end = {.x = 100, .y = 0}},
+        {.start = {.x = 100, .y = 0}, .end = {.x = 150, .y = 100}},
+        {.start = {.x = 150, .y = 100}, .end = {.x = 200, .y = 0}},
+    };
+
+    for (int i = 0; i < sizeof(LOGO) / sizeof(LOGO[0]); i++)
+    {
+        fb_draw_line(LOGO[i].start, LOGO[i].end, color_logo, 1);
+    }
 }
