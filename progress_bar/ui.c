@@ -14,7 +14,8 @@
 
 // 定义进度条的颜色、位置和宽度
 #define PROGRESS_COLOR color_transform(0, 255, 0)
-#define PROGRESS_BG_COLOR color_transform(100, 100, 100)
+#define PROGRESS_COLOR_DONE color_transform(255, 0, 0)
+#define PROGRESS_BG_COLOR color_transform(0, 50, 0)
 #define PROGRESS_WIDTH (vinfo.xres * 7 / 10)
 #define PROGRESS_HEIGHT (vinfo.yres / 10)
 #define PROGRESS_X ((vinfo.xres - PROGRESS_WIDTH) / 2)
@@ -281,7 +282,10 @@ void ui_draw_progress(int progress)
     // 绘制进度条矩形
     struct POSITION start_progress = {PROGRESS_X, PROGRESS_Y};
     struct POSITION end_progress = {progress_x_end, PROGRESS_Y + PROGRESS_HEIGHT};
-    fb_draw_rect(start_progress, end_progress, PROGRESS_COLOR);
+    if (progress < 100)
+        fb_draw_rect(start_progress, end_progress, PROGRESS_COLOR);
+    else
+        fb_draw_rect(start_progress, end_progress, PROGRESS_COLOR_DONE);
 }
 
 void draw_logo()
