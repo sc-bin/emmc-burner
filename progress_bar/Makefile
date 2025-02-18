@@ -12,6 +12,9 @@ install:
 	cp $(target) /usr/bin/
 	chmod +x /usr/bin/$(target)
 
+uninstall:
+	rm /usr/share/fonts/DejaVuSans.ttf
+	rm /usr/bin/$(target)
 
 clean:
 	-rm $(target)
