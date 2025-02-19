@@ -72,20 +72,7 @@ _delete_all_part() {
     fi
 }
 
-blink_led() {
-    while true ;
-    do
-        gpio write 42 1
-        sleep 0.3
-        gpio write 42 0
-        sleep 0.3
-    done
-}
-led_down() {
-    gpio write 42 0
-}
-blink_led &
-BLINK_PID=$!
+
 _dd_file() {
     local FILE_IF=$1
     local PROGRESS_SIZE=$2
@@ -110,7 +97,20 @@ _dd_file() {
     done
     echo "size : ${num}${result} Byte"
     
-    
+    blink_led() {
+        while true ;
+        do
+            gpio write 42 1
+            sleep 0.3
+            gpio write 42 0
+            sleep 0.3
+        done
+    }
+    led_down() {
+        gpio write 42 0
+    }
+    blink_led &
+    BLINK_PID=$!
     local set_emmc_burn_speed=0
     local set_emmc_burn_time_use=0
     while IFS= read -r -d $'\r' line
@@ -130,6 +130,8 @@ _dd_file() {
     sync
     _show_burn_progress 100 $set_emmc_burn_speed $set_emmc_burn_time_use 0
     echo ""
+    kill $BLINK_PID 2>/dev/null
+    led_down
 }
 
 IMG_PATH="/opt/burn"
@@ -138,5 +140,3 @@ if [ -f $IMG_FILE ]; then
     BIN_SIZE=$(stat -c "%s" $IMG_FILE)
     _dd_file $IMG_FILE  $BIN_SIZE
 fi
-kill $BLINK_PID 2>/dev/null
-led_down
