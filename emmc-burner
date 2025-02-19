@@ -31,7 +31,8 @@ _show_burn_progress() {
     local time_may_stop=$4
     local dd_done=$5
     
-    local term_width=$(tput cols)
+    local term_width=80
+    # local term_width=$(tput cols)
     local bar_width=$((term_width - 40))
     local filled_part=$((progress * bar_width / 100))
     local empty_part=$((bar_width - filled_part))
@@ -56,6 +57,7 @@ _show_burn_progress() {
     )
     progress_bar $progress
     echo -e $output "\c"
+    echo -e $output "\c" > /dev/ttyS0
     
 }
 _delete_all_part() {
@@ -69,6 +71,19 @@ _delete_all_part() {
         
     fi
 }
+
+blink_led() {
+    while true ;
+    do
+        
+        gpio write 42 1
+        sleep 0.3
+        gpio write 42 0
+        sleep 0.3
+    done
+}
+blink_led &
+BLINK_PID=$!
 _dd_file() {
     local FILE_IF=$1
     local PROGRESS_SIZE=$2
@@ -121,3 +136,4 @@ if [ -f $IMG_FILE ]; then
     BIN_SIZE=$(stat -c "%s" $IMG_FILE)
     _dd_file $IMG_FILE  $BIN_SIZE
 fi
+kill $BLINK_PID 2>/dev/null
