@@ -14,7 +14,7 @@
 
 // 定义进度条的颜色、位置和宽度
 #define PROGRESS_COLOR color_transform(0, 255, 0)
-#define PROGRESS_COLOR_DONE color_transform(255, 0, 0)
+#define PROGRESS_COLOR_DONE color_transform(0xa7, 0x68, 0x33)
 #define PROGRESS_BG_COLOR color_transform(0, 50, 0)
 #define PROGRESS_WIDTH (vinfo.xres * 7 / 10)
 #define PROGRESS_HEIGHT (vinfo.yres / 10)
@@ -24,9 +24,16 @@
 // 定义logo的颜色、位置和字体大小
 #define LOGO_STR "W A L N U T    P I"
 #define LOGO_COLOR color_transform(100, 100, 100)
-#define LOGO_X (PROGRESS_X + (PROGRESS_WIDTH / 4))
+#define LOGO_X PROGRESS_X + 80
 #define LOGO_Y (PROGRESS_Y - (PROGRESS_HEIGHT / 2))
-#define LOGO_FONT_SIZE vinfo.xres / 10
+#define LOGO_FONT_SIZE (vinfo.xres / 5) - 50
+
+// 定义Done的颜色、位置和字体大小
+#define DONE_STR "Done"
+#define DONE_COLOR color_transform(250, 0, 0)
+#define DONE_FONT_SIZE vinfo.xres / 10
+#define DONE_X (vinfo.xres / 2) - (DONE_FONT_SIZE / 2)
+#define DONE_Y (PROGRESS_Y + (DONE_FONT_SIZE))
 
 static int fd_fb0;
 static uint8_t *mmap_fb0;
@@ -263,7 +270,14 @@ void fb_place_string(const char *text, int x, int y, int font_size, int color)
     }
     free(text_buffer);
 }
-
+void draw_done()
+{
+    fb_place_string(DONE_STR, DONE_X, DONE_Y, DONE_FONT_SIZE, DONE_COLOR);
+}
+void draw_logo()
+{
+    fb_place_string(LOGO_STR, LOGO_X, LOGO_Y, LOGO_FONT_SIZE, LOGO_COLOR);
+}
 void ui_draw_progress(int progress)
 {
     if (progress < 0 || progress > 100)
@@ -285,10 +299,9 @@ void ui_draw_progress(int progress)
     if (progress < 100)
         fb_draw_rect(start_progress, end_progress, PROGRESS_COLOR);
     else
-        fb_draw_rect(start_progress, end_progress, PROGRESS_COLOR_DONE);
-}
+    {
 
-void draw_logo()
-{
-    fb_place_string(LOGO_STR, LOGO_X, LOGO_Y, LOGO_FONT_SIZE, LOGO_COLOR);
+        fb_draw_rect(start_progress, end_progress, PROGRESS_COLOR_DONE);
+        draw_done();
+    }
 }
