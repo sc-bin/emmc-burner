@@ -115,7 +115,8 @@ _dd_file() {
     echo ""
 }
 
-IMG_FILE="/opt/img"
+IMG_PATH="/opt/burn"
+IMG_FILE="$IMG_PATH/$(ls -t $IMG_PATH | grep .img | head -n 1)"
 if [ -f $IMG_FILE ]; then
     BIN_SIZE=$(stat -c "%s" $IMG_FILE)
     _dd_file $IMG_FILE  $BIN_SIZE
