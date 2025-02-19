@@ -75,12 +75,14 @@ _delete_all_part() {
 blink_led() {
     while true ;
     do
-        
         gpio write 42 1
         sleep 0.3
         gpio write 42 0
         sleep 0.3
     done
+}
+led_down() {
+    gpio write 42 0
 }
 blink_led &
 BLINK_PID=$!
@@ -137,3 +139,4 @@ if [ -f $IMG_FILE ]; then
     _dd_file $IMG_FILE  $BIN_SIZE
 fi
 kill $BLINK_PID 2>/dev/null
+led_down
